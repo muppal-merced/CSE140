@@ -67,62 +67,64 @@ main:
 	jal	PRINT_MAT
 
 # Your CODE HERE
+# matrix c = s4
+# matrix b = s3
+# matrix a = s2
 
-# 9 rows -> s1 (n)
-# 10 cols -> s0 (m)
-# matrix c -> s4 (base matrix c)
-# i -> t0 (row index of matrix C and matrix A)
-# j -> t1 (column index of matrix C and matrix B)
-# k -> t2 (sums over columns of A / rows of B)
-# sum -> t3 (accumulates sum for C[i][j])
+# i = rows t0
+# j = cols t1
+# k = sum index t2
+# sum = t3
+#s0 = 10 cols (m)
+#s1 = 9 rows (n)
 
-# represent 2d arr as 1d by using formula index = matrix (row * width + col) * 4 bytes
-# width = num of cols n
-# Example:
-# to access c[2][3] in 9x9 mat, offset = 2*9 + 3 = 21
-# adress = base + 21*4 = base + 84 bytes
+# 2d array into 1d array -> matrix + (row*width + col) * byte offset(4)
 
+addi t0, x0, 0 #i = 0
 
-
-	addi t0, x0, 0 # i = 0
 loop_i:
-	bge	t0, s1, end_i # if i >= 9 done
+	bge t0, s1, i_done # if i >= 9 (s1) end
 	addi t1, x0, 0 # j = 0
+
 loop_j:
-	bge	t1, s1, end_j # if j >= 9 next i
-	addi t2, x0, 0 # k = 0
+	bge t1, s1, j_done # if j >= 9 (s1) end
+	addi t2, x0, 0 # k = 0 
 	addi t3, x0, 0 # sum = 0
-	# C[i][j]: matrix_c + (9*i + j)*4
-	mul	t4, t0, s1 # t4 = 9*i
-	add	t4, t4, t1 # t4 = 9*i + j
-	slli t4, t4, 2 # byte offset
-	add	t5, s4, t4 # t5 =  adress of C[i][j]
+	mul t4, t0, s1 # row (t0 -> i) * width (num of cols)
+	add t4, t4, t1 # (row*width + col)
+	slli t4, t4, 2 # (row*width + col) * byte offset(4)
+	add t5, s4, t4 # t5 = adress of c[i][j]
+
 loop_k:
-	bge	t2, s0, end_k # if k >= 10 done dot product
-	# A[i][k]: matrix_a + (10*i + k)*4
-	mul	t4, t0, s0 # t4 = 10*i
-	add	t4, t4, t2 # t4 = 10*i + k
-	slli t4, t4, 2
-	add	t4, s2, t4
-	lw	t6, 0(t4) # t6 = A[i][k]
-	# B[k][j]: matrix_b + (9*k + j)*4
-	mul	t4, t2, s1 # t4 = 9*k
-	add	t4, t4, t1 # t4 = 9*k + j
-	slli t4, t4, 2
-	add	t4, s3, t4
-	lw	a0, 0(t4) # a0 = B[k][j]
-	mul	t6, t6, a0
-	add	t3, t3, t6 # sum += A[i][k]*B[k][j]
-	addi t2, t2, 1
-	b	loop_k # branch to loop_k
-end_k:
-	sw	t3, 0(t5) # C[i][j] = sum
-	addi t1, t1, 1
-	b	loop_j # branch to loop_j
-end_j:
-	addi t0, t0, 1
-	b	loop_i # branch to loop_i
-end_i:
+	bge t2, s0, k_done #if k >= 10 (s0) end
+	#A[i][k] = matrix a + (i*10 + k)*4
+	mul t4, t0, s0 # i*10
+	add t4, t4, t2 # (i*10+k)
+	slli t4, t4, 2 # (i*10+k)*4
+	add t4, s2, t4 # add address A[i][k] into t4
+	lw t6, 0(t4) # load value of A[i][k] into t6
+	#B[k][j] = matrix b + (k*9 + j) *4
+	mul t4, t2, s1 # k*9
+	add t4, t4, t1 # k*9+j
+	slli t4, t4, 2 # (k*9+j)*4
+	add t4, s3, t4 # load adress of B[k][j] into t4
+	lw a0, 0(t4) # load value of B[k][j] into a0 (temp registr for multipying A[i][k] with B[k][j])
+	mul t6, t6, a0 # A[i][k] * B[k][j]
+	add t3, t3, t6 # sum += A[i][k] * B[k][j]
+	addi t2, t2, 1 # k++
+	b loop_k
+
+k_done:
+	sw t3, 0(t5) #save value of t3(sum) into mem address of c[i][j](t5)
+	addi t1, t1, 1 # j++
+	b loop_j
+
+j_done:
+	addi t0, t0, 1 # i++
+	b loop_i
+
+i_done:
+
 
 # End CODE
 
